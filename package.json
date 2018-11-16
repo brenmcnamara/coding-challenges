@@ -1,0 +1,31 @@
+{
+  "name": "@nine-point/model",
+  "main": "index.js",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "babel src --out-dir dist && node scripts/gen-flow-files"
+  },
+  "author": "Brendan McNamara",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-eslint": "^10.0.1",
+    "babel-loader": "^8.0.4",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-flow": "^6.23.0",
+    "babel-register": "^6.26.0",
+    "eslint": "^5.9.0",
+    "eslint-plugin-flowtype": "^3.2.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-watch": "^4.0.2",
+    "flow-bin": "^0.86.0",
+    "prettier": "^1.15.2"
+  },
+  "dependencies": {
+    "uuid": "^3.3.2"
+  }
+}
