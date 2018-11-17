@@ -1,7 +1,7 @@
 {
   "name": "@nine-point/model",
   "main": "index.js",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "scripts": {
     "build": "babel src --out-dir dist && node scripts/gen-flow-files"
