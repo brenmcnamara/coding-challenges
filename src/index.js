@@ -4,6 +4,8 @@ export type ID = string;
 
 export type LoadStatus = "EMPTY" | "LOADING" | "READY" | "ERROR";
 
+export type MillisSinceEpoch = number;
+
 export type Pointer<TModelName: string> = {|
   +pointerType: TModelName,
   +refID: ID,
@@ -11,11 +13,11 @@ export type Pointer<TModelName: string> = {|
 |};
 
 export type ModelStub<TModelName: string> = {
-  +createdAt: Date,
+  +createdAt: MillisSinceEpoch,
   +id: ID,
   +modelType: TModelName,
   +type: "MODEL",
-  +updatedAt: Date,
+  +updatedAt: MillisSinceEpoch,
 };
 
 export default class Model<
@@ -72,11 +74,11 @@ export default class Model<
     return this.__raw.id;
   }
 
-  get updatedAt(): Date {
+  get updatedAt(): MillisSinceEpoch {
     return this.__raw.updatedAt;
   }
 
-  get createdAt(): Date {
+  get createdAt(): MillisSinceEpoch {
     return this.__raw.createdAt;
   }
 
