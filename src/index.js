@@ -1,22 +1,25 @@
 /* @flow */
 
+import invariant from 'invariant';
+import t from 'tcomb-validation';
+
 export type ID = string;
 
-export type LoadStatus = "EMPTY" | "LOADING" | "READY" | "ERROR";
+export type LoadStatus = 'EMPTY' | 'LOADING' | 'READY' | 'ERROR';
 
 export type MillisSinceEpoch = number;
 
 export type Pointer<TModelName: string> = {|
   +pointerType: TModelName,
   +refID: ID,
-  +type: "POINTER",
+  +type: 'POINTER',
 |};
 
 export type ModelStub<TModelName: string> = {
   +createdAt: MillisSinceEpoch,
   +id: ID,
   +modelType: TModelName,
-  +type: "MODEL",
+  +type: 'MODEL',
   +updatedAt: MillisSinceEpoch,
 };
 
@@ -24,8 +27,12 @@ export default class Model<
   TModelName: string,
   TRawModel: ModelStub<TModelName>,
 > {
+  static SCHEMA_ID: ID;
+
   static collectionName: string;
   static modelName: TModelName;
+
+  static validation: Object; // Tcomb type
 
   // ---------------------------------------------------------------------------
   // MAY OVERRIDE
@@ -66,6 +73,18 @@ export default class Model<
     return new Ctor(raw);
   }
 
+  static fromJSON(json: Object): this {
+    const result = t.validate(json, this.validation);
+    invariant(
+      result.isValid(),
+      '%s',
+      result.firstError() && result.firstError().message,
+    );
+
+    // $FlowFixMe - Typecast is safe after validation occurs
+    return this.fromRaw((json: TRawModel));
+  }
+
   toRaw(): TRawModel {
     return this.__raw;
   }
@@ -86,18 +105,28 @@ export default class Model<
     return this.constructor.modelName;
   }
 
-  get type(): "MODEL" {
-    return "MODEL";
+  get type(): 'MODEL' {
+    return 'MODEL';
   }
 
   merge(props: $Shape<TRawModel>): this {
-    return this.constructor.fromRaw({...this.__raw, ...props});
+    return this.constructor.fromRaw({ ...this.__raw, ...props });
   }
 }
+
+export const tModel= (modelName: string, type: Object) =>
+  t.struct({
+    createdAt: t.Number,
+    id: t.String,
+    modelType: t.refinement(t.String, str => str === modelName),
+    type: t.refinement(t.String, str => str === 'MODEL'),
+    updatedAt: t.Number,
+    ...type,
+  });
 
 function createPointer<TModelName: string>(
   name: TModelName,
   id: ID,
 ): Pointer<TModelName> {
-  return {pointerType: name, refID: id, type: "POINTER"};
+  return { pointerType: name, refID: id, type: 'POINTER' };
 }
