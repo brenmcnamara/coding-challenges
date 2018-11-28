@@ -1,10 +1,10 @@
 /* @flow */
 
-import Model, { tModel } from '.';
+import Model, { tModel } from './Model';
 
 import t from 'tcomb-validation';
 
-import type { ModelStub } from '.';
+import type { ModelStub } from './Model';
 
 export type HogwartsStudentRaw = ModelStub<'HogwartsStudent'> & {
   +house: 'GRIFFINDOR' | 'HUFFLEPUFF' | 'RAVENCLAW' | 'SLYTHERIN',

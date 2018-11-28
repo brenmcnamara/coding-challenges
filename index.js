@@ -1,1 +1,3 @@
-module.exports = require("./dist/index.js");
+module.exports = {};
+
+module.exports.Model = require('./lib/Model');
