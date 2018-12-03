@@ -8,6 +8,7 @@ import type { ModelStub } from '../Model';
 
 export type PersonRaw = ModelStub<'Person'> & {
   +address: {| +descriptor: string |} | null,
+  +email: string | null,
   +firstName: string,
   +lastName: string,
   +phoneNumber: string | null,
@@ -25,6 +26,7 @@ export default class Person extends Model<'Person', PersonRaw> {
         descriptor: t.String,
       }),
     ),
+    email: t.String,
     firstName: t.String,
     lastName: t.String,
     phoneNUmber: t.maybe(t.String),
@@ -32,6 +34,10 @@ export default class Person extends Model<'Person', PersonRaw> {
 
   get address(): {| +descriptor: string |} | null {
     return this.__raw.address;
+  }
+
+  get email(): string | null {
+    return this.__raw.email;
   }
 
   get firstName(): string {

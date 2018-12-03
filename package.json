@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "babel src --out-dir lib && node scripts/gen-flow-files",
+    "build": "babel src --out-dir lib --ignore '__tests__/' && node scripts/gen-flow-files",
     "clean": "rimraf lib/",
-    "postinstall": "build",
+    "postinstall": "npm run build",
     "test": "jest src"
   },
   "author": "Brendan McNamara",
