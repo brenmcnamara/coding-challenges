@@ -1,4 +1,4 @@
-import Person from '../core-types/Person';
+import Person from '../Person';
 
 test('Valid Person json passes validation', () => {
   const jsonNoAddressOrPhoneNumber = {
