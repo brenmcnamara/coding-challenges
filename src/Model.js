@@ -114,7 +114,7 @@ export default class Model<
   }
 }
 
-export const tModel= (modelName: string, type: Object) =>
+export const tModel = (modelName: string, type: Object) =>
   t.struct({
     createdAt: t.Number,
     id: t.String,
