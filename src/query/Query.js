@@ -163,7 +163,7 @@ function matchesQuery(model: Model<*, *>, query: Q): boolean {
 
   switch (query.type) {
     case 'Q_COMPOUND': {
-      return invariant(false, 'NOT YET IMPLEMENTED');
+      return matchesCompoundQuery(model, query);
     }
 
     case 'Q_DATE': {
@@ -174,8 +174,39 @@ function matchesQuery(model: Model<*, *>, query: Q): boolean {
       return matchesEnumQuery(model, query);
     }
 
+    case 'Q_NUMBER': {
+      return matchesNumberQuery(model, query);
+    }
+
+    case 'Q_STRING': {
+      return matchesStringQuery(model, query);
+    }
+
     default: {
       return invariant(false, 'Unknown query type: %s', query.type);
+    }
+  }
+}
+
+function matchesCompoundQuery(model: Model<*, *>, query: Q$Compound): boolean {
+  const { op } = query;
+
+  switch (op.type) {
+    case 'Q_OP_COMPOUND_AND': {
+      return op.value.every(q => matchesQuery(model, q));
+    }
+
+    case 'Q_OP_COMPOUND_OR': {
+      return op.value.some(q => matchesQuery(model, q));
+    }
+
+    default: {
+      return invariant(
+        false,
+        'Unepxected op type %s for query type %s',
+        op.type,
+        query.type,
+      );
     }
   }
 }
@@ -185,7 +216,7 @@ function matchesDateQuery(model: Model<*, *>, query: Q$Date): boolean {
 
   // $FlowFixMe - This is a stupid error!
   if (OPS_NULLABLE[op.type]) {
-    return matchesNullQuery(model, query);
+    return matchesNullableQuery(model, query);
   }
 
   const prop = model.resolveQueryProperty(query);
@@ -200,17 +231,22 @@ function matchesDateQuery(model: Model<*, *>, query: Q$Date): boolean {
     }
 
     default: {
-      return invariant(false, 'Unexpected op type: %s', op.type);
+      return invariant(
+        false,
+        'Unexpected op type %s for query type',
+        op.type,
+        query.type,
+      );
     }
   }
 }
 
-function matchesEnumQuery(model: Model<*, *>, query: Q$Enum): boolean {
-  const {op} = query;
+function matchesEnumQuery(model: Model<*, *>, query: Q$Enum<*>): boolean {
+  const { op } = query;
 
   // $FlowFixMe - This is a stupid error!
   if (OPS_NULLABLE[op.type]) {
-    return matchesNullQuery(model, query);
+    return matchesNullableQuery(model, query);
   }
 
   const prop = model.resolveQueryProperty(query);
@@ -223,11 +259,80 @@ function matchesEnumQuery(model: Model<*, *>, query: Q$Enum): boolean {
     case 'Q_OP_ENUM_EQUALS_NONE_OF': {
       return typeof prop === 'string' && op.value.every(e => e !== prop);
     }
+
+    default: {
+      return invariant(
+        false,
+        'Unexpected op type %s for query type %s',
+        op.type,
+        query.type,
+      );
+    }
   }
 }
 
 function matchesNullableQuery(model: Model<*, *>, query: Q): boolean {
   return false;
+}
+
+function matchesNumberQuery(model: Model<*, *>, query: Q$Number): boolean {
+  const { op } = query;
+
+  // $FlowFixMe - This is a stupid error!
+  if (OPS_NULLABLE[op.type]) {
+    return matchesNullableQuery(model, query);
+  }
+
+  const prop = model.resolveQueryProperty(query);
+
+  switch (op.type) {
+    case 'Q_OP_NUMBER_GT': {
+      return typeof prop === 'number' && prop > op.value;
+    }
+
+    case 'Q_OP_NUMBER_LT': {
+      return typeof prop === 'number' && prop < op.value;
+    }
+
+    default: {
+      return invariant(
+        false,
+        'Unexpected op type %s for query %s',
+        op.type,
+        query.type,
+      );
+    }
+  }
+}
+
+function matchesStringQuery(model: Model<*, *>, query: Q$String): boolean {
+  const { op } = query;
+
+  // $FlowFixMe - This is a stupid error!
+  if (OPS_NULLABLE[op.type]) {
+    return matchesNullableQuery(model, query);
+  }
+
+  const prop = model.resolveQueryProperty(query);
+
+  switch (op.type) {
+    case 'Q_OP_STRING_EQUALS': {
+      return prop === op.value;
+    }
+
+    case 'Q_OP_STRING_NOT_EQUALS': {
+      return prop !== op.value;
+    }
+
+    default: {
+      return invariant(
+        false,
+        'Unexpected op type %s for query type %s',
+        op.type,
+        query.type,
+      );
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -329,8 +434,7 @@ function getRuleAtPath(rule: QR, path: string): QR | null {
       }
 
       case 'QR_NULLABLE': {
-        invariant(false, 'Should never be handling QR_NULLABLE');
-        break;
+        return invariant(false, 'Should never be handling QR_NULLABLE');
       }
 
       case 'QR_DATE':

@@ -140,3 +140,43 @@ test('Matches enum queries', () => {
   expect(q.matchesQuery(HOGWARTS_STUDENT.HARRY_POTTER, query)).toBe(true);
   expect(q.matchesQuery(HOGWARTS_STUDENT.DRACO_MALFOY, query)).toBe(false);
 });
+
+test('Matches number query', () => {
+  const query = q.Number('housePointsEarned', {
+    type: 'Q_OP_NUMBER_GT',
+    value: 1000,
+  });
+
+  expect(q.matchesQuery(HOGWARTS_STUDENT.RON_WEASLEY, query)).toBe(false);
+  expect(q.matchesQuery(HOGWARTS_STUDENT.HERMIONE_GRANGER, query)).toBe(true);
+});
+
+test('Matches string query', () => {
+  const query = q.String('name', {
+    type: 'Q_OP_STRING_EQUALS',
+    value: 'Harry Potter',
+  });
+
+  expect(q.matchesQuery(HOGWARTS_STUDENT.HARRY_POTTER, query)).toBe(true);
+  expect(q.matchesQuery(HOGWARTS_STUDENT.RON_WEASLEY, query)).toBe(false);
+});
+
+test('Matches compound query', () => {
+  const query = q.Compound({
+    type: 'Q_OP_COMPOUND_OR',
+    value: [
+      q.String('name', {
+        type: 'Q_OP_STRING_EQUALS',
+        value: 'Harry Potter',
+      }),
+      q.String('name', {
+        type: 'Q_OP_STRING_EQUALS',
+        value: 'Ron Weasley',
+      }),
+    ],
+  });
+
+  expect(q.matchesQuery(HOGWARTS_STUDENT.HARRY_POTTER, query)).toBe(true);
+  expect(q.matchesQuery(HOGWARTS_STUDENT.RON_WEASLEY, query)).toBe(true);
+  expect(q.matchesQuery(HOGWARTS_STUDENT.DRACO_MALFOY, query)).toBe(false);
+});

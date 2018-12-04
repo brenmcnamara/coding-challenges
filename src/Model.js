@@ -5,7 +5,7 @@ import qr from './query/QueryRule';
 import t from 'tcomb-validation';
 
 import type { Q$Atomic } from './query/Query';
-import type { QR } from './query/QueryRule';
+import type { QR, QR$Struct } from './query/QueryRule';
 
 export type ID = string;
 
@@ -149,7 +149,7 @@ export const tModel = (modelName: string, type: Object) =>
     ...type,
   });
 
-export const qrModel = qr.Struct({
+export const qrModel: QR$Struct<*> = qr.Struct({
   createdAt: qr.Date,
   id: qr.String,
   updatedAt: qr.Date,
