@@ -6,6 +6,24 @@ const isValidHogwartsQuery = q.isValidQuery.bind(null, HogwartsStudent);
 
 // TODO: Need to add a nullable prop to HogwartsStudent for testing.
 
+test('Query validates boolean queries', () => {
+  const validQuery = q.Boolean('isFemale', {
+    type: 'Q_OP_BOOLEAN_TRUE',
+  });
+  expect(isValidHogwartsQuery(validQuery)).toBe(true);
+
+  const invalidOp = q.Boolean('isFemale', {
+    type: 'Q_OP_NUMBER_GT',
+    value: 100,
+  });
+  expect(isValidHogwartsQuery(invalidOp)).toBe(false);
+
+  const invalidPath = q.Boolean('blah', {
+    type: 'Q_OP_BOOLEAN_TRUE',
+  });
+  expect(isValidHogwartsQuery(invalidPath)).toBe(false);
+});
+
 test('Query validates date queries', () => {
   const validQuery = q.Date('createdAt', {
     type: 'Q_OP_DATE_AFTER',
@@ -119,6 +137,15 @@ test('Query validates compound', () => {
   });
 
   expect(isValidHogwartsQuery(invalidQuery)).toBe(false);
+});
+
+test('Matches boolean queries', () => {
+  const query = q.Boolean('isFemale', {
+    type: 'Q_OP_BOOLEAN_TRUE',
+  });
+
+  expect(q.matchesQuery(HOGWARTS_STUDENT.HERMIONE_GRANGER, query)).toBe(true);
+  expect(q.matchesQuery(HOGWARTS_STUDENT.RON_WEASLEY, query)).toBe(false);
 });
 
 test('Matches date queries', () => {

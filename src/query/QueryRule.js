@@ -3,12 +3,19 @@
 import invariant from 'invariant';
 
 export type QR =
+  | QR$Boolean
   | QR$Date
   | QR$Enum<*>
   | QR$Nullable<*>
   | QR$Number
   | QR$String
   | QR$Struct<*>;
+
+export type QR$Boolean = {|
+  +type: 'QR_BOOLEAN',
+|};
+
+const Boolean = { type: 'QR_BOOLEAN' };
 
 export type QR$Date = {|
   +type: 'QR_DATE',
@@ -116,6 +123,7 @@ function normalize(rule: QR): QR {
 }
 
 export default {
+  Boolean,
   Date,
   Enum,
   intersect,

@@ -5,7 +5,7 @@ import nullthrows from 'nullthrows';
 
 import type Model, { MillisSinceEpoch } from '../Model';
 
-import type { QR, QR$Date, QR$Nullable } from './QueryRule';
+import type { QR } from './QueryRule';
 
 // -----------------------------------------------------------------------------
 //
@@ -15,7 +15,13 @@ import type { QR, QR$Date, QR$Nullable } from './QueryRule';
 
 export type Q = Q$Atomic | Q$Compound;
 
-export type Q$Atomic = Q$Date | Q$Enum<*> | Q$Number | Q$String;
+export type Q$Atomic = Q$Boolean | Q$Date | Q$Enum<*> | Q$Number | Q$String;
+
+export type Q$Boolean = {|
+  +op: Op$Boolean | Op$Nullable,
+  +path: string,
+  +type: 'Q_BOOLEAN',
+|};
 
 export type Q$Date = {|
   +op: Op$Date | Op$Nullable,
@@ -46,6 +52,10 @@ export type Q$Compound = {|
   +type: 'Q_COMPOUND',
 |};
 
+function Boolean(path: string, op: Op$Boolean | Op$Nullable) {
+  return { op, path, type: 'Q_BOOLEAN' };
+}
+
 function Compound(op: Op$Compound) {
   return { op, type: 'Q_COMPOUND' };
 }
@@ -74,7 +84,21 @@ function String(path: string, op: Op$String | Op$Nullable) {
 
 export type Op = Op$Atomic | Op$Compound | Op$Nullable;
 
-export type Op$Atomic = Op$Date | Op$Enum<*> | Op$Number | Op$String;
+export type Op$Atomic =
+  | Op$Boolean
+  | Op$Date
+  | Op$Enum<*>
+  | Op$Number
+  | Op$String;
+
+const OPS_BOOLEAN = {
+  Q_OP_BOOLEAN_FALSE: true,
+  Q_OP_BOOLEAN_TRUE: true,
+};
+
+export type Op$Boolean = {|
+  +type: $Keys<typeof OPS_BOOLEAN>,
+|};
 
 const OPS_COMPOUND = {
   Q_OP_COMPOUND_AND: true,
@@ -161,7 +185,16 @@ function matchesQuery(model: Model<*, *>, query: Q): boolean {
     query.type,
   );
 
+  // $FlowFixMe - This is a stupid error!
+  if (OPS_NULLABLE[query.op.type]) {
+    return matchesNullableQuery(model, query);
+  }
+
   switch (query.type) {
+    case 'Q_BOOLEAN': {
+      return matchesBooleanQuery(model, query);
+    }
+
     case 'Q_COMPOUND': {
       return matchesCompoundQuery(model, query);
     }
@@ -184,6 +217,30 @@ function matchesQuery(model: Model<*, *>, query: Q): boolean {
 
     default: {
       return invariant(false, 'Unknown query type: %s', query.type);
+    }
+  }
+}
+
+function matchesBooleanQuery(model: Model<*, *>, query: Q$Boolean): boolean {
+  const { op } = query;
+  const prop = model.resolveQueryProperty(query);
+
+  switch (op.type) {
+    case 'Q_OP_BOOLEAN_TRUE': {
+      return prop === true;
+    }
+
+    case 'Q_OP_BOOLEAN_FALSE': {
+      return prop === false;
+    }
+
+    default: {
+      return invariant(
+        false,
+        'Unexpected op type %s for query type %s',
+        op.type,
+        query.type,
+      );
     }
   }
 }
@@ -213,12 +270,6 @@ function matchesCompoundQuery(model: Model<*, *>, query: Q$Compound): boolean {
 
 function matchesDateQuery(model: Model<*, *>, query: Q$Date): boolean {
   const { op } = query;
-
-  // $FlowFixMe - This is a stupid error!
-  if (OPS_NULLABLE[op.type]) {
-    return matchesNullableQuery(model, query);
-  }
-
   const prop = model.resolveQueryProperty(query);
 
   switch (op.type) {
@@ -243,12 +294,6 @@ function matchesDateQuery(model: Model<*, *>, query: Q$Date): boolean {
 
 function matchesEnumQuery(model: Model<*, *>, query: Q$Enum<*>): boolean {
   const { op } = query;
-
-  // $FlowFixMe - This is a stupid error!
-  if (OPS_NULLABLE[op.type]) {
-    return matchesNullableQuery(model, query);
-  }
-
   const prop = model.resolveQueryProperty(query);
 
   switch (op.type) {
@@ -277,12 +322,6 @@ function matchesNullableQuery(model: Model<*, *>, query: Q): boolean {
 
 function matchesNumberQuery(model: Model<*, *>, query: Q$Number): boolean {
   const { op } = query;
-
-  // $FlowFixMe - This is a stupid error!
-  if (OPS_NULLABLE[op.type]) {
-    return matchesNullableQuery(model, query);
-  }
-
   const prop = model.resolveQueryProperty(query);
 
   switch (op.type) {
@@ -307,12 +346,6 @@ function matchesNumberQuery(model: Model<*, *>, query: Q$Number): boolean {
 
 function matchesStringQuery(model: Model<*, *>, query: Q$String): boolean {
   const { op } = query;
-
-  // $FlowFixMe - This is a stupid error!
-  if (OPS_NULLABLE[op.type]) {
-    return matchesNullableQuery(model, query);
-  }
-
   const prop = model.resolveQueryProperty(query);
 
   switch (op.type) {
@@ -347,6 +380,18 @@ function isValidQuery(ModelCtor: Class<Model<*, *>>, query: Q): boolean {
 
 function isValidQueryImpl(rule: QR, query: Q): boolean {
   switch (query.type) {
+    case 'Q_BOOLEAN': {
+      const booleanRule = getRuleAtPath(rule, query.path);
+      if (!booleanRule) {
+        return false;
+      }
+      if (!doesRuleMatchQuery(booleanRule, query)) {
+        return false;
+      }
+      const expectedOpTypes = getOpTypesForRule(booleanRule);
+      return expectedOpTypes.some(opType => query.op.type === opType);
+    }
+
     case 'Q_COMPOUND': {
       return query.op.value.every(q => isValidQueryImpl(rule, q));
     }
@@ -437,6 +482,7 @@ function getRuleAtPath(rule: QR, path: string): QR | null {
         return invariant(false, 'Should never be handling QR_NULLABLE');
       }
 
+      case 'QR_BOOLEAN':
       case 'QR_DATE':
       case 'QR_ENUM':
       case 'QR_NUMBER':
@@ -456,6 +502,10 @@ function getRuleAtPath(rule: QR, path: string): QR | null {
 
 function getOpTypesForRule(rule: QR): Array<string> {
   switch (rule.type) {
+    case 'QR_BOOLEAN': {
+      return Object.keys(OPS_BOOLEAN);
+    }
+
     case 'QR_DATE': {
       return Object.keys(OPS_DATE);
     }
@@ -489,6 +539,10 @@ function getOpTypesForRule(rule: QR): Array<string> {
 
 function doesRuleMatchQuery(rule: QR, query: Q): boolean {
   switch (rule.type) {
+    case 'QR_BOOLEAN': {
+      return query.type === 'Q_BOOLEAN';
+    }
+
     case 'QR_DATE': {
       return query.type === 'Q_DATE';
     }
@@ -516,6 +570,7 @@ function doesRuleMatchQuery(rule: QR, query: Q): boolean {
 }
 
 export default {
+  Boolean,
   Compound,
   Date,
   Enum,
