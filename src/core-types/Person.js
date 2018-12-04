@@ -1,7 +1,8 @@
 /* @flow */
 
-import Model, { tModel } from '../Model';
+import Model, { qrModel, tModel } from '../Model';
 
+import qr from '../query/QueryRule';
 import t from 'tcomb-validation';
 
 import type { ModelStub } from '../Model';
@@ -20,13 +21,28 @@ export default class Person extends Model<'Person', PersonRaw> {
   static collectionName = 'People';
   static modelName = 'Person';
 
+  static queryRule = qr.intersect([
+    qrModel,
+    qr.Struct({
+      address: qr.Nullable(
+        qr.Struct({
+          descriptor: qr.String,
+        }),
+      ),
+      email: qr.Nullable(qr.String),
+      firstName: qr.String,
+      lastName: qr.String,
+      phoneNumber: qr.Nullable(qr.String),
+    }),
+  ]);
+
   static validation = tModel('Person', {
     address: t.maybe(
       t.struct({
         descriptor: t.String,
       }),
     ),
-    email: t.String,
+    email: t.maybe(t.String),
     firstName: t.String,
     lastName: t.String,
     phoneNUmber: t.maybe(t.String),

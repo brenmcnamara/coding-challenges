@@ -1,7 +1,10 @@
 /* @flow */
 
 import invariant from 'invariant';
+import qr from './query/QueryRule';
 import t from 'tcomb-validation';
+
+import type { QR } from './query/QueryRule';
 
 export type ID = string;
 
@@ -32,6 +35,7 @@ export default class Model<
   static collectionName: string;
   static modelName: TModelName;
 
+  static queryRule: QR;
   static validation: Object; // Tcomb type
 
   // ---------------------------------------------------------------------------
@@ -123,6 +127,12 @@ export const tModel = (modelName: string, type: Object) =>
     updatedAt: t.Number,
     ...type,
   });
+
+export const qrModel = qr.Struct({
+  createdAt: qr.Date,
+  id: qr.String,
+  updatedAt: qr.Date,
+});
 
 function createPointer<TModelName: string>(
   name: TModelName,

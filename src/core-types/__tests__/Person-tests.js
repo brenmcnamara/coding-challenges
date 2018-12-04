@@ -4,6 +4,7 @@ test('Valid Person json passes validation', () => {
   const jsonNoAddressOrPhoneNumber = {
     address: null,
     createdAt: new Date().getTime(),
+    email: null,
     firstName: 'Brendan',
     id: '123',
     lastName: 'McNamara',
@@ -18,6 +19,7 @@ test('Valid Person json passes validation', () => {
   const jsonWithAddressNoPhoneNumber = {
     address: {descriptor: '18720 Sylvan St Tarzana CA 91416'},
     createdAt: new Date().getTime(),
+    email: null,
     firstName: 'Brendan',
     id: '123',
     lastName: 'McNamara',
@@ -32,6 +34,7 @@ test('Valid Person json passes validation', () => {
   const jsonWithPhoneNumberNoAddress = {
     address: null,
     createdAt: new Date().getTime(),
+    email: null,
     firstName: 'Brendan',
     id: '123',
     lastName: 'McNamara',
@@ -48,6 +51,7 @@ test('Invalid Person json throws error', () => {
   const jsonMissingFirstName = {
     address: null,
     createdAt: new Date().getTime(),
+    email: null,
     id: '123',
     lastName: 'McNamara',
     modelType: 'Person',
