@@ -1,10 +1,11 @@
 /* @flow */
 
 import invariant from 'invariant';
+import nullthrows from 'nullthrows';
 
 import type Model, { MillisSinceEpoch } from '../Model';
 
-import type { QR } from './QueryRule';
+import type { QR, QR$Date, QR$Nullable } from './QueryRule';
 
 // -----------------------------------------------------------------------------
 //
@@ -12,51 +13,56 @@ import type { QR } from './QueryRule';
 //
 // -----------------------------------------------------------------------------
 
-export type Q =
-  | {|
-      +op: Op$Date | Op$Nullable,
-      +path: string,
-      +type: 'Q_DATE',
-    |}
-  | {|
-      +op: Op$Enum<*> | Op$Nullable,
-      +path: string,
-      +type: 'Q_ENUM',
-    |}
-  | {|
-      +op: Op$Number | Op$Nullable,
-      +path: string,
-      +type: 'Q_NUMBER',
-    |}
-  | {|
-      +op: Op$String | Op$Nullable,
-      +path: string,
-      +type: 'Q_STRING',
-    |}
-  | {|
-      +op: Op$Nullable,
-      +path: string,
-      +type: 'Q_STRUCT',
-    |}
-  | {|
-      +queries: Array<Q>,
-      +op: Op$Compound,
-      +type: 'Q_COMPOUND',
-    |};
+export type Q = Q$Atomic | Q$Compound;
 
-function Date(path: string, op: Op$Date | Op$Nullable): Q {
+export type Q$Atomic = Q$Date | Q$Enum<*> | Q$Number | Q$String;
+
+export type Q$Date = {|
+  +op: Op$Date | Op$Nullable,
+  +path: string,
+  +type: 'Q_DATE',
+|};
+
+export type Q$Enum<T: string> = {|
+  +op: Op$Enum<T> | Op$Nullable,
+  +path: string,
+  +type: 'Q_ENUM',
+|};
+
+export type Q$Number = {|
+  +op: Op$Number | Op$Nullable,
+  +path: string,
+  +type: 'Q_NUMBER',
+|};
+
+export type Q$String = {|
+  +op: Op$String | Op$Nullable,
+  +path: string,
+  +type: 'Q_STRING',
+|};
+
+export type Q$Compound = {|
+  +op: Op$Compound,
+  +type: 'Q_COMPOUND',
+|};
+
+function Compound(op: Op$Compound) {
+  return { op, type: 'Q_COMPOUND' };
+}
+
+function Date(path: string, op: Op$Date | Op$Nullable) {
   return { op, path, type: 'Q_DATE' };
 }
 
-function Enum(path: string, op: Op$Enum<*> | Op$Nullable): Q {
+function Enum(path: string, op: Op$Enum<*> | Op$Nullable) {
   return { op, path, type: 'Q_ENUM' };
 }
 
-function Number(path: string, op: Op$Number | Op$Nullable): Q {
+function Number(path: string, op: Op$Number | Op$Nullable) {
   return { op, path, type: 'Q_NUMBER' };
 }
 
-function String(path: string, op: Op$String | Op$Nullable): Q {
+function String(path: string, op: Op$String | Op$Nullable) {
   return { op, path, type: 'Q_STRING' };
 }
 
@@ -77,6 +83,7 @@ const OPS_COMPOUND = {
 
 export type Op$Compound = {|
   +type: $Keys<typeof OPS_COMPOUND>,
+  +value: Array<Q>,
 |};
 
 const OPS_DATE = {
@@ -143,7 +150,89 @@ export type Op$String =
 
 // -----------------------------------------------------------------------------
 //
-// UTILITIES
+// QUERY MATCHING
+//
+// -----------------------------------------------------------------------------
+
+function matchesQuery(model: Model<*, *>, query: Q): boolean {
+  invariant(
+    isValidQuery(model.constructor, query),
+    'Invalid query of type %s',
+    query.type,
+  );
+
+  switch (query.type) {
+    case 'Q_COMPOUND': {
+      return invariant(false, 'NOT YET IMPLEMENTED');
+    }
+
+    case 'Q_DATE': {
+      return matchesDateQuery(model, query);
+    }
+
+    case 'Q_ENUM': {
+      return matchesEnumQuery(model, query);
+    }
+
+    default: {
+      return invariant(false, 'Unknown query type: %s', query.type);
+    }
+  }
+}
+
+function matchesDateQuery(model: Model<*, *>, query: Q$Date): boolean {
+  const { op } = query;
+
+  // $FlowFixMe - This is a stupid error!
+  if (OPS_NULLABLE[op.type]) {
+    return matchesNullQuery(model, query);
+  }
+
+  const prop = model.resolveQueryProperty(query);
+
+  switch (op.type) {
+    case 'Q_OP_DATE_AFTER': {
+      return typeof prop === 'number' && prop > op.value;
+    }
+
+    case 'Q_OP_DATE_BEFORE': {
+      return typeof prop === 'number' && prop > op.value;
+    }
+
+    default: {
+      return invariant(false, 'Unexpected op type: %s', op.type);
+    }
+  }
+}
+
+function matchesEnumQuery(model: Model<*, *>, query: Q$Enum): boolean {
+  const {op} = query;
+
+  // $FlowFixMe - This is a stupid error!
+  if (OPS_NULLABLE[op.type]) {
+    return matchesNullQuery(model, query);
+  }
+
+  const prop = model.resolveQueryProperty(query);
+
+  switch (op.type) {
+    case 'Q_OP_ENUM_EQUALS_ONE_OF': {
+      return typeof prop === 'string' && op.value.some(e => e === prop);
+    }
+
+    case 'Q_OP_ENUM_EQUALS_NONE_OF': {
+      return typeof prop === 'string' && op.value.every(e => e !== prop);
+    }
+  }
+}
+
+function matchesNullableQuery(model: Model<*, *>, query: Q): boolean {
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+//
+// QUERY VALIDATION
 //
 // -----------------------------------------------------------------------------
 
@@ -153,6 +242,10 @@ function isValidQuery(ModelCtor: Class<Model<*, *>>, query: Q): boolean {
 
 function isValidQueryImpl(rule: QR, query: Q): boolean {
   switch (query.type) {
+    case 'Q_COMPOUND': {
+      return query.op.value.every(q => isValidQueryImpl(rule, q));
+    }
+
     case 'Q_DATE': {
       const dateRule = getRuleAtPath(rule, query.path);
       if (!dateRule) {
@@ -210,13 +303,19 @@ function isValidQueryImpl(rule: QR, query: Q): boolean {
   }
 }
 
+// -----------------------------------------------------------------------------
+//
+// UTILITIES
+//
+// -----------------------------------------------------------------------------
+
 function getRuleAtPath(rule: QR, path: string): QR | null {
   const splitPath = path.split('.').filter(str => str);
 
   let next = rule;
 
   for (let segment of splitPath) {
-    if (next.type === 'QR_NULLABLE') {
+    while (next.type === 'QR_NULLABLE') {
       next = next.value;
     }
 
@@ -230,7 +329,7 @@ function getRuleAtPath(rule: QR, path: string): QR | null {
       }
 
       case 'QR_NULLABLE': {
-        // This case is handled separately.
+        invariant(false, 'Should never be handling QR_NULLABLE');
         break;
       }
 
@@ -312,4 +411,12 @@ function doesRuleMatchQuery(rule: QR, query: Q): boolean {
   }
 }
 
-export default { Date, Enum, isValidQuery, Number, String };
+export default {
+  Compound,
+  Date,
+  Enum,
+  isValidQuery,
+  matchesQuery,
+  Number,
+  String,
+};

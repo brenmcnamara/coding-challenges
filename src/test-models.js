@@ -5,9 +5,10 @@ import Model, { qrModel, tModel } from './Model';
 import qr from './query/QueryRule';
 import t from 'tcomb-validation';
 
-import type { ModelStub } from './Model';
+import type { MillisSinceEpoch, ModelStub } from './Model';
 
 export type HogwartsStudentRaw = ModelStub<'HogwartsStudent'> & {
+  +birthday: MillisSinceEpoch,
   +house: 'GRIFFINDOR' | 'HUFFLEPUFF' | 'RAVENCLAW' | 'SLYTHERIN',
   +housePointsEarned: number,
   +magicAnimal: 'OWL' | 'RAT' | 'CAT' | null,
@@ -26,6 +27,7 @@ export class HogwartsStudent extends Model<
   static queryRule = qr.intersect([
     qrModel,
     qr.Struct({
+      birthday: qr.Date,
       house: qr.Enum(['GRIFFINDOR', 'HUFFLEPUFF', 'RAVENCLAW', 'SLYTHERIN']),
       housePointsEarned: qr.Number,
       magicAnimal: qr.Nullable(qr.Enum(['OWL', 'RAT', 'CAT'])),
@@ -34,6 +36,7 @@ export class HogwartsStudent extends Model<
   ]);
 
   static validation = tModel('HogwartsStudent', {
+    birthday: t.Number,
     house: t.enums.of('GRIFFINDOR SLYTHERIN HUFFLEPUFF RAVENCLAW'),
     housePointsEarned: t.Number,
     magicAnimal: t.maybe(t.enums.of('OWL RAT CAT')),
@@ -43,6 +46,7 @@ export class HogwartsStudent extends Model<
 
 export const HOGWARTS_STUDENT = {
   DRACO_MALFOY: HogwartsStudent.fromRaw({
+    birthday: Date.UTC(1992, 10, 20),
     createdAt: new Date().getTime(),
     house: 'SLYTHERIN',
     housePointsEarned: 1125,
@@ -55,6 +59,7 @@ export const HOGWARTS_STUDENT = {
   }),
 
   HARRY_POTTER: HogwartsStudent.fromRaw({
+    birthday: Date.UTC(1993, 1, 20),
     createdAt: new Date().getTime(),
     house: 'GRIFFINDOR',
     housePointsEarned: 1870,
@@ -67,6 +72,7 @@ export const HOGWARTS_STUDENT = {
   }),
 
   HERMIONE_GRANGER: HogwartsStudent.fromRaw({
+    birthday: Date.UTC(1993, 5, 22),
     createdAt: new Date().getTime(),
     house: 'GRIFFINDOR',
     housePointsEarned: 9890,
@@ -79,6 +85,7 @@ export const HOGWARTS_STUDENT = {
   }),
 
   RON_WEASLEY: HogwartsStudent.fromRaw({
+    birthday: Date.UTC(1993, 8, 1),
     createdAt: new Date().getTime(),
     house: 'GRIFFINDOR',
     housePointsEarned: 875,

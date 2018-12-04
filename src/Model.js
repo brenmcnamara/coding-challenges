@@ -4,6 +4,7 @@ import invariant from 'invariant';
 import qr from './query/QueryRule';
 import t from 'tcomb-validation';
 
+import type { Q$Atomic } from './query/Query';
 import type { QR } from './query/QueryRule';
 
 export type ID = string;
@@ -53,6 +54,26 @@ export default class Model<
     }
 
     return thisKeys.every(key => this.__raw[key] === that.__raw[key]);
+  }
+
+  // NOTE: By default, this resolves queries using the raw json form of the
+  // model. If the model can query properties that do not exist on the raw
+  // model, you must override this behavior.
+  resolveQueryProperty(query: Q$Atomic): mixed {
+    const { path } = query;
+    const splitPath = path.split('.').filter(Boolean);
+
+    let next = this.toRaw();
+    for (let segment of splitPath) {
+      invariant(
+        next,
+        'Could not resolve path %s for model %s',
+        path,
+        this.constructor.name,
+      );
+      next = next[segment];
+    }
+    return next;
   }
 
   // ---------------------------------------------------------------------------
