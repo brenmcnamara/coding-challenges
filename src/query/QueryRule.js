@@ -62,6 +62,47 @@ function Struct<T: { [key: string]: QR }>(value: T): QR$Struct<T> {
   return { type: 'QR_STRUCT', value };
 }
 
+function getRuleAtPath(rule: QR, path: string): QR | null {
+  const splitPath = path.split('.').filter(str => str);
+
+  let next = rule;
+
+  for (let segment of splitPath) {
+    while (next.type === 'QR_NULLABLE') {
+      next = next.value;
+    }
+
+    switch (next.type) {
+      case 'QR_STRUCT': {
+        next = next.value[segment];
+        if (!next) {
+          return null;
+        }
+        break;
+      }
+
+      case 'QR_NULLABLE': {
+        return invariant(false, 'Should never be handling QR_NULLABLE');
+      }
+
+      case 'QR_BOOLEAN':
+      case 'QR_DATE':
+      case 'QR_ENUM':
+      case 'QR_NUMBER':
+      case 'QR_STRING': {
+        // Cannot go to a particular path on a primitive type.
+        return null;
+      }
+
+      default: {
+        return invariant(false, 'Unhandled query rule type: %s', next.type);
+      }
+    }
+  }
+
+  return next;
+}
+
 function intersect(structs: Array<QR$Struct<*>>): QR$Struct<*> {
   return {
     type: 'QR_STRUCT',
@@ -126,6 +167,7 @@ export default {
   Boolean,
   Date,
   Enum,
+  getRuleAtPath,
   intersect,
   normalize,
   Nullable,

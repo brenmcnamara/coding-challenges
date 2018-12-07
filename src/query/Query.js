@@ -2,6 +2,7 @@
 
 import invariant from 'invariant';
 import nullthrows from 'nullthrows';
+import qr from './QueryRule';
 
 import type Model, { MillisSinceEpoch } from '../Model';
 
@@ -381,7 +382,7 @@ function isValidQuery(ModelCtor: Class<Model<*, *>>, query: Q): boolean {
 function isValidQueryImpl(rule: QR, query: Q): boolean {
   switch (query.type) {
     case 'Q_BOOLEAN': {
-      const booleanRule = getRuleAtPath(rule, query.path);
+      const booleanRule = qr.getRuleAtPath(rule, query.path);
       if (!booleanRule) {
         return false;
       }
@@ -397,7 +398,7 @@ function isValidQueryImpl(rule: QR, query: Q): boolean {
     }
 
     case 'Q_DATE': {
-      const dateRule = getRuleAtPath(rule, query.path);
+      const dateRule = qr.getRuleAtPath(rule, query.path);
       if (!dateRule) {
         return false;
       }
@@ -409,7 +410,7 @@ function isValidQueryImpl(rule: QR, query: Q): boolean {
     }
 
     case 'Q_ENUM': {
-      const enumRule = getRuleAtPath(rule, query.path);
+      const enumRule = qr.getRuleAtPath(rule, query.path);
       if (!enumRule) {
         return false;
       }
@@ -424,7 +425,7 @@ function isValidQueryImpl(rule: QR, query: Q): boolean {
     }
 
     case 'Q_NUMBER': {
-      const numberRule = getRuleAtPath(rule, query.path);
+      const numberRule = qr.getRuleAtPath(rule, query.path);
       if (!numberRule) {
         return false;
       }
@@ -436,7 +437,7 @@ function isValidQueryImpl(rule: QR, query: Q): boolean {
     }
 
     case 'Q_STRING': {
-      const stringRule = getRuleAtPath(rule, query.path);
+      const stringRule = qr.getRuleAtPath(rule, query.path);
       if (!stringRule) {
         return false;
       }
@@ -458,47 +459,6 @@ function isValidQueryImpl(rule: QR, query: Q): boolean {
 // UTILITIES
 //
 // -----------------------------------------------------------------------------
-
-function getRuleAtPath(rule: QR, path: string): QR | null {
-  const splitPath = path.split('.').filter(str => str);
-
-  let next = rule;
-
-  for (let segment of splitPath) {
-    while (next.type === 'QR_NULLABLE') {
-      next = next.value;
-    }
-
-    switch (next.type) {
-      case 'QR_STRUCT': {
-        next = next.value[segment];
-        if (!next) {
-          return null;
-        }
-        break;
-      }
-
-      case 'QR_NULLABLE': {
-        return invariant(false, 'Should never be handling QR_NULLABLE');
-      }
-
-      case 'QR_BOOLEAN':
-      case 'QR_DATE':
-      case 'QR_ENUM':
-      case 'QR_NUMBER':
-      case 'QR_STRING': {
-        // Cannot go to a particular path on a primitive type.
-        return null;
-      }
-
-      default: {
-        return invariant(false, 'Unhandled query rule type: %s', next.type);
-      }
-    }
-  }
-
-  return next;
-}
 
 function getOpTypesForRule(rule: QR): Array<string> {
   switch (rule.type) {
