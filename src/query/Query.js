@@ -16,34 +16,45 @@ import type { QR } from './QueryRule';
 
 export type Q = Q$Atomic | Q$Compound;
 
-export type Q$Atomic = Q$Boolean | Q$Date | Q$Enum<*> | Q$Number | Q$String;
+export type Q$Atomic =
+  | Q$Boolean
+  | Q$Date
+  | Q$Enum<*>
+  | Q$Null
+  | Q$Number
+  | Q$String;
 
 export type Q$Boolean = {|
-  +op: Op$Boolean | Op$Nullable,
+  +op: Op$Boolean,
   +path: string,
   +type: 'Q_BOOLEAN',
 |};
 
 export type Q$Date = {|
-  +op: Op$Date | Op$Nullable,
+  +op: Op$Date,
   +path: string,
   +type: 'Q_DATE',
 |};
 
 export type Q$Enum<T: string> = {|
-  +op: Op$Enum<T> | Op$Nullable,
+  +op: Op$Enum<T>,
   +path: string,
   +type: 'Q_ENUM',
 |};
 
 export type Q$Number = {|
-  +op: Op$Number | Op$Nullable,
+  +op: Op$Number,
   +path: string,
   +type: 'Q_NUMBER',
 |};
 
+export type Q$Null = {|
+  +op: Op$Nullable,
+  +type: 'Q_NULL',
+|};
+
 export type Q$String = {|
-  +op: Op$String | Op$Nullable,
+  +op: Op$String,
   +path: string,
   +type: 'Q_STRING',
 |};
@@ -53,7 +64,7 @@ export type Q$Compound = {|
   +type: 'Q_COMPOUND',
 |};
 
-function Boolean(path: string, op: Op$Boolean | Op$Nullable) {
+function Boolean(path: string, op: Op$Boolean) {
   return { op, path, type: 'Q_BOOLEAN' };
 }
 
@@ -61,19 +72,23 @@ function Compound(op: Op$Compound) {
   return { op, type: 'Q_COMPOUND' };
 }
 
-function Date(path: string, op: Op$Date | Op$Nullable) {
+function Date(path: string, op: Op$Date) {
   return { op, path, type: 'Q_DATE' };
 }
 
-function Enum(path: string, op: Op$Enum<*> | Op$Nullable) {
+function Enum(path: string, op: Op$Enum<*>) {
   return { op, path, type: 'Q_ENUM' };
 }
 
-function Number(path: string, op: Op$Number | Op$Nullable) {
+function Null(path: string, op: Op$Nullable) {
+  return { op, path, type: 'Q_NULL' };
+}
+
+function Number(path: string, op: Op$Number) {
   return { op, path, type: 'Q_NUMBER' };
 }
 
-function String(path: string, op: Op$String | Op$Nullable) {
+function String(path: string, op: Op$String) {
   return { op, path, type: 'Q_STRING' };
 }
 
@@ -89,6 +104,7 @@ export type Op$Atomic =
   | Op$Boolean
   | Op$Date
   | Op$Enum<*>
+  | Op$Nullable
   | Op$Number
   | Op$String;
 
@@ -132,8 +148,8 @@ export type Op$Enum<T: string> = {|
 |};
 
 const OPS_NULLABLE = {
-  Q_OP_NULLABLE_IS_NOT_NULL: true,
-  Q_OP_NULLABLE_IS_NULL: true,
+  Q_OP_NULL_IS_NOT_NULL: true,
+  Q_OP_NULL_IS_NULL: true,
 };
 
 export type Op$Nullable = {|
@@ -186,11 +202,6 @@ function matchesQuery(model: Model<*, *>, query: Q): boolean {
     query.type,
   );
 
-  // $FlowFixMe - This is a stupid error!
-  if (OPS_NULLABLE[query.op.type]) {
-    return matchesNullableQuery(model, query);
-  }
-
   switch (query.type) {
     case 'Q_BOOLEAN': {
       return matchesBooleanQuery(model, query);
@@ -206,6 +217,10 @@ function matchesQuery(model: Model<*, *>, query: Q): boolean {
 
     case 'Q_ENUM': {
       return matchesEnumQuery(model, query);
+    }
+
+    case 'Q_NULL': {
+      return matchesNullQuery(model, query);
     }
 
     case 'Q_NUMBER': {
@@ -317,7 +332,29 @@ function matchesEnumQuery(model: Model<*, *>, query: Q$Enum<*>): boolean {
   }
 }
 
-function matchesNullableQuery(model: Model<*, *>, query: Q): boolean {
+function matchesNullQuery(model: Model<*, *>, query: Q): boolean {
+  const { op } = query;
+  const prop = model.resolveQueryProperty(query);
+
+  switch (op.type) {
+    case 'Q_OP_NULL_IS_NULL': {
+      return prop == null;
+    }
+
+    case 'Q_OP_NULL_IS_NOT_NULL': {
+      return prop != null;
+    }
+
+    default: {
+      return invariant(
+        false,
+        'Unexpected op type %s for query type %s',
+        op.type,
+        query.type,
+      );
+    }
+  }
+
   return false;
 }
 
@@ -424,6 +461,20 @@ function isValidQueryImpl(rule: QR, query: Q): boolean {
       return expectedOpTypes.some(opType => query.op.type === opType);
     }
 
+    case 'Q_NULL': {
+      const nullRule = qr.getRuleAtPath(rule, query.path);
+
+      if (!nullRule) {
+        return false;
+      }
+      if (!doesRuleMatchQuery(nullRule, query)) {
+        return false;
+      }
+
+      const expectedOpTypes = getOpTypesForRule(nullRule);
+      return expectedOpTypes.some(opType => query.op.type === opType);
+    }
+
     case 'Q_NUMBER': {
       const numberRule = qr.getRuleAtPath(rule, query.path);
       if (!numberRule) {
@@ -512,7 +563,7 @@ function doesRuleMatchQuery(rule: QR, query: Q): boolean {
     }
 
     case 'QR_NULLABLE': {
-      return doesRuleMatchQuery(rule.value, query);
+      return query.type === 'Q_NULL';
     }
 
     case 'QR_NUMBER': {
@@ -536,6 +587,7 @@ export default {
   Enum,
   isValidQuery,
   matchesQuery,
+  Null,
   Number,
   String,
 };

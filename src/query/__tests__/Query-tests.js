@@ -84,14 +84,14 @@ test('Query validates number', () => {
   expect(isValidHogwartsQuery(invalidPath)).toBe(false);
 });
 
-test('Query validates nullable', () => {
-  const validQuery = q.Enum('magicAnimal', {
-    type: 'Q_OP_NULLABLE_IS_NULL',
+test('Query validates null', () => {
+  const validQuery = q.Null('magicAnimal', {
+    type: 'Q_OP_NULL_IS_NULL',
   });
   expect(isValidHogwartsQuery(validQuery)).toBe(true);
 
-  const invalidBecauseNonNullProps = q.Enum('house', {
-    type: 'Q_OP_NULLABLE_IS_NULL',
+  const invalidBecauseNonNullProps = q.Null('house', {
+    type: 'Q_OP_NULL_IS_NULL',
   });
   expect(isValidHogwartsQuery(invalidBecauseNonNullProps)).toBe(false);
 });
@@ -166,6 +166,15 @@ test('Matches enum queries', () => {
 
   expect(q.matchesQuery(HOGWARTS_STUDENT.HARRY_POTTER, query)).toBe(true);
   expect(q.matchesQuery(HOGWARTS_STUDENT.DRACO_MALFOY, query)).toBe(false);
+});
+
+test('Matches null query', () => {
+  const query = q.Null('magicAnimal', {
+    type: 'Q_OP_NULL_IS_NULL',
+  });
+
+  expect(q.matchesQuery(HOGWARTS_STUDENT.DRACO_MALFOY, query)).toBe(true);
+  expect(q.matchesQuery(HOGWARTS_STUDENT.HARRY_POTTER, query)).toBe(false);
 });
 
 test('Matches number query', () => {
