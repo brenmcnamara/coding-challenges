@@ -1,7 +1,7 @@
 {
   "name": "@nine-point/foundation",
   "main": "index.js",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "",
   "scripts": {
     "build": "babel src --out-dir lib --ignore '__tests__/' && node scripts/gen-flow-files",
