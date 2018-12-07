@@ -50,6 +50,7 @@ export type Q$Number = {|
 
 export type Q$Null = {|
   +op: Op$Nullable,
+  +path: string,
   +type: 'Q_NULL',
 |};
 
@@ -332,7 +333,7 @@ function matchesEnumQuery(model: Model<*, *>, query: Q$Enum<*>): boolean {
   }
 }
 
-function matchesNullQuery(model: Model<*, *>, query: Q): boolean {
+function matchesNullQuery(model: Model<*, *>, query: Q$Null): boolean {
   const { op } = query;
   const prop = model.resolveQueryProperty(query);
 
@@ -354,8 +355,6 @@ function matchesNullQuery(model: Model<*, *>, query: Q): boolean {
       );
     }
   }
-
-  return false;
 }
 
 function matchesNumberQuery(model: Model<*, *>, query: Q$Number): boolean {
