@@ -16,6 +16,7 @@
   },
   "env": {
     "browser": true,
+    "es6": true,
     "node": true,
     "jest": true
   },
@@ -37,6 +38,7 @@
     "flowtype/valid-syntax": 1,
     "max-len": ["error", 100],
     "no-console": 1,
+    "no-unused-vars": ["error", {"args": "none"}],
     "semi": ["error", "always"]
   },
   "settings": {
