@@ -7,7 +7,7 @@
     "build": "babel src --out-dir lib --ignore '__tests__/' && node scripts/gen-flow-files",
     "clean": "rimraf lib/",
     "prepublish": "echo 'Running PreInstall Script' && npm run clean && npm run build",
-    "sm:tic-tac-toe": "node lib/tic-tac-toe",
+    "sm:tic-tac-toe": "node lib/tic-tac-toe/js",
     "test": "jest src"
   },
   "author": "Brendan McNamara",
