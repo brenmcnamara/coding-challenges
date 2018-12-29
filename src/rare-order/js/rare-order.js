@@ -34,9 +34,7 @@ export default function rareOrder(words: Array<string>): string {
   while (orderMap.size) {
 
     let didFindEmptySet = false;
-    for (let key of orderMap.keys()) {
-      const set = nullthrows(orderMap.get(key));
-
+    for (let [key, set] of orderMap.entries()) {
       if (set.size === 0) {
         didFindEmptySet = true;
         ordering[pointer] = key;
@@ -44,8 +42,7 @@ export default function rareOrder(words: Array<string>): string {
         orderMap.delete(key);
 
         // Go through all other sets and remove the key from those sets.
-        for (let otherKey of orderMap.keys()) {
-          const otherSet = nullthrows(orderMap.get(otherKey));
+        for (let otherSet of orderMap.values()) {
           if (otherSet.size === 0) {
             throw Error('Non-Deterministic ordering');
           }
