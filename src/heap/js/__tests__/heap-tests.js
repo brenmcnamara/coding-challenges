@@ -17,7 +17,7 @@ test('Removes elements from the heap', () => {
   expect(heap.size).toBe(0);
 });
 
-test('Throws when removing an empty heap', () => {
+test('Throws when removing from an empty heap', () => {
   const heap = new Heap();
 
   expect(() => heap.remove()).toThrow();
