@@ -117,7 +117,7 @@ test('Identifies squares of mixed sizes', () => {
 });
 
 test('Identifies full board squares', () => {
-  const board2 = visualToBoard(`
+  const board1 = visualToBoard(`
     *-*-*-*
     |     |
     * * * *
@@ -126,14 +126,14 @@ test('Identifies full board squares', () => {
     |     |
     *-*-*-*
   `);
-  expect(squares(board2)).toEqual(new Map([[1, 0], [2, 0], [3, 1]]));
+  expect(squares(board1)).toEqual(new Map([[1, 0], [2, 0], [3, 1]]));
 
-  const board3 = visualToBoard(`
+  const board2 = visualToBoard(`
     *-*-*
     |   |
     * * *
     |   |
     *-*-*
   `);
-  expect(squares(board3)).toEqual(new Map([[1, 0], [2, 1]]));
+  expect(squares(board2)).toEqual(new Map([[1, 0], [2, 1]]));
 });
